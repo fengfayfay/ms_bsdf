@@ -47,14 +47,14 @@ MetalMaterial::MetalMaterial(const std::shared_ptr<Texture<Spectrum>> &eta,
                              const std::shared_ptr<Texture<Float>> &uRoughness,
                              const std::shared_ptr<Texture<Float>> &vRoughness,
                              const std::shared_ptr<Texture<Float>> &bumpMap,
-                             bool remapRoughness)
+                             bool remapRoughness, bool useMS, int maxScatteringOrder)
     : eta(eta),
       k(k),
       roughness(roughness),
       uRoughness(uRoughness),
       vRoughness(vRoughness),
       bumpMap(bumpMap),
-      remapRoughness(remapRoughness) {}
+      remapRoughness(remapRoughness), useMS(useMS), maxScatteringOrder(maxScatteringOrder) {}
 
 void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction *si,
                                                MemoryArena &arena,
@@ -72,11 +72,16 @@ void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction *si,
         uRough = TrowbridgeReitzDistribution::RoughnessToAlpha(uRough);
         vRough = TrowbridgeReitzDistribution::RoughnessToAlpha(vRough);
     }
-    Fresnel *frMf = ARENA_ALLOC(arena, FresnelConductor)(1., eta->Evaluate(*si),
+    if (useMS) {
+      si->bsdf->Add(ARENA_ALLOC(arena, ConductorMSReflection)(eta->Evaluate(*si), k->Evaluate(*si), 
+                                                              uRough, vRough, maxScatteringOrder));
+    } else {
+      Fresnel *frMf = ARENA_ALLOC(arena, FresnelConductor)(1., eta->Evaluate(*si),
                                                          k->Evaluate(*si));
-    MicrofacetDistribution *distrib =
+      MicrofacetDistribution *distrib =
         ARENA_ALLOC(arena, TrowbridgeReitzDistribution)(uRough, vRough);
-    si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(1., distrib, frMf));
+      si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(1., distrib, frMf));
+    }
 }
 
 const int CopperSamples = 56;
@@ -129,8 +134,14 @@ MetalMaterial *CreateMetalMaterial(const TextureParams &mp) {
     std::shared_ptr<Texture<Float>> bumpMap =
         mp.GetFloatTextureOrNull("bumpmap");
     bool remapRoughness = mp.FindBool("remaproughness", true);
+    bool useMS = mp.FindBool("useMS", false);
+    int maxScatteringOrder = 0;
+    if (useMS) {
+      maxScatteringOrder = mp.FindInt("maxScatteringOrder", 10);
+    }
+    
     return new MetalMaterial(eta, k, roughness, uRoughness, vRoughness, bumpMap,
-                             remapRoughness);
+                             remapRoughness, useMS, maxScatteringOrder);
 }
 
 }  // namespace pbrt

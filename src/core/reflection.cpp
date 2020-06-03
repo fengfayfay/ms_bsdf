@@ -70,10 +70,16 @@ Float FrDielectric(Float cosThetaI, Float etaI, Float etaT) {
 // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
 Spectrum FrConductor(Float cosThetaI, const Spectrum &etai,
                      const Spectrum &etat, const Spectrum &k) {
-    cosThetaI = Clamp(cosThetaI, -1, 1);
     Spectrum eta = etat / etai;
     Spectrum etak = k / etai;
+    return FrConductor(cosThetaI, eta, etak);
+}
 
+Spectrum FrConductor(Float cosThetaI, 
+                     const Spectrum &eta, const Spectrum &etak) {
+    //return Spectrum(1.0f);
+
+    cosThetaI = Clamp(cosThetaI, -1, 1);
     Float cosThetaI2 = cosThetaI * cosThetaI;
     Float sinThetaI2 = 1. - cosThetaI2;
     Spectrum eta2 = eta * eta;

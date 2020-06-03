@@ -44,6 +44,8 @@
 
 namespace pbrt {
 
+Vector3f TrowbridgeReitzSample(const Vector3f &wi, Float alpha_x,
+                                      Float alpha_y, Float U1, Float U2);
 // MicrofacetDistribution Declarations
 class MicrofacetDistribution {
   public:

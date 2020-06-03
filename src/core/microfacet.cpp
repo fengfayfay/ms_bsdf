@@ -281,7 +281,7 @@ static void TrowbridgeReitzSample11(Float cosTheta, Float U1, Float U2,
     CHECK(!std::isnan(*slope_y));
 }
 
-static Vector3f TrowbridgeReitzSample(const Vector3f &wi, Float alpha_x,
+Vector3f TrowbridgeReitzSample(const Vector3f &wi, Float alpha_x,
                                       Float alpha_y, Float U1, Float U2) {
     // 1. stretch wi
     Vector3f wiStretched =

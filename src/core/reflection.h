@@ -51,6 +51,8 @@ namespace pbrt {
 Float FrDielectric(Float cosThetaI, Float etaI, Float etaT);
 Spectrum FrConductor(Float cosThetaI, const Spectrum &etaI,
                      const Spectrum &etaT, const Spectrum &k);
+Spectrum FrConductor(Float cosThetaI, 
+                     const Spectrum &eta, const Spectrum &etak);
 
 // BSDF Inline Functions
 inline Float CosTheta(const Vector3f &w) { return w.z; }
@@ -447,6 +449,29 @@ class MicrofacetReflection : public BxDF {
     const MicrofacetDistribution *distribution;
     const Fresnel *fresnel;
 };
+
+class ConductorMSReflection : public BxDF {
+  public:
+    // MicrofacetReflection Public Methods
+    ConductorMSReflection(const Spectrum &m_eta, const Spectrum &m_k, 
+      const float alpha_x, const float alpha_y, const int maxScatteringOrder)
+        : BxDF(BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)),
+          m_eta(m_eta), m_k(m_k), alpha_x(alpha_x), alpha_y(alpha_y), m_scatteringOrderMax(maxScatteringOrder)
+          {}
+    Spectrum f(const Vector3f &wo, const Vector3f &wi) const;
+    Spectrum Sample_f(const Vector3f &wo, Vector3f *wi, const Point2f &u,
+                      Float *pdf, BxDFType *sampledType) const;
+    Float Pdf(const Vector3f &wo, const Vector3f &wi) const;
+    std::string ToString() const;
+
+  private:
+    // MicrofacetReflection Private Data
+    const Spectrum m_eta, m_k;
+    float alpha_x, alpha_y;
+    int m_scatteringOrderMax;
+    //const Fresnel *fresnel;
+};
+
 
 class MicrofacetTransmission : public BxDF {
   public:
