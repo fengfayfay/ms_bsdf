@@ -1,0 +1,34 @@
+Film "image" 
+	"integer xresolution" [400] "integer yresolution" [400]
+    "string filename" "furnace_ms_01.png"
+Integrator "path" "integer maxdepth" [1]
+Sampler "halton" "integer pixelsamples" [64] 
+
+LookAt 0 3 8  0 .8 0   0 1 0
+Camera "perspective" "float fov" [22]
+
+WorldBegin
+
+
+AttributeBegin
+  LightSource "infinite" "color L" [.7 .7 .7]
+AttributeEnd
+
+
+AttributeBegin
+Material "metal" "float roughness" [0.1]
+    "spectrum eta" "spds/Au.eta.spd"
+    "spectrum k" "spds/Au.k.spd"
+    "bool useMS" "true"
+    "bool remaproughness" "true"
+    "integer maxScatteringOrder" [20]
+
+Translate 0 1 0
+Rotate 60 1 1 1
+Scale .9 .9 .9
+Shape "sphere"
+AttributeEnd
+
+
+WorldEnd
+

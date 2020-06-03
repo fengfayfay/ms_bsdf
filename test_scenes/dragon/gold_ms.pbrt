@@ -1,0 +1,55 @@
+
+Film "image" "integer xresolution" [500] "integer yresolution" [500]
+  "string filename" "gold_ms_05.png"
+
+Sampler "halton" "integer pixelsamples" [256]
+#Sampler "halton" "integer pixelsamples" [32]
+#Sampler "halton" "integer pixelsamples" [1024]
+
+Integrator "path" "integer maxdepth" 10 
+#Integrator "bdpt" "integer maxdepth" 10
+#Integrator "mlt" "integer mutationsperpixel" 1024 "integer maxdepth" 9
+#Integrator "sppm" "integer numiterations" [128] "float radius" [5]
+
+#LookAt 400 -400 400  0 80 -50 0 0 1
+LookAt 277 -240 250  0 60 -30 0 0 1
+Camera "perspective" "float fov" [33]
+
+WorldBegin
+
+AttributeBegin
+Rotate 90 0 0 1
+Rotate -90 1 0 0
+LightSource "infinite" "string mapname"
+    "textures/20060807_wells6_hd.exr"   "color scale" [2.5 2.5 2.5]
+#"pisa_latlong.exr" "color scale" [2.55 3 3]
+AttributeEnd
+
+AttributeBegin
+#Material "matte" "color Kd" [.7 .7 .7]
+#Material "mirror" "color Kr" [ .7 .7 .7 ]
+Texture "lines" "color" "imagemap" "string filename" "textures/lines.exr"
+Material "plastic"
+ "color Kd" [.1 .1 .1]
+# "texture Kd" "lines"
+  "color Ks" [.7 .7 .7] "float roughness" .1
+#Material "mirror"
+Translate 0 0 -40
+Shape "trianglemesh"
+   "point P" [ -1000 -1000 0   1000 -1000 0   1000 1000 0 -1000 1000 0 ]
+   "float uv" [ 0 0 1 0 1 1 0 1 ]
+	"integer indices" [ 0 1 2 2 3 0]
+AttributeEnd
+
+AttributeBegin
+Rotate -53 0 1 0
+Material "metal" "float roughness" [.5]
+    "spectrum eta" "spds/Au.eta.spd"
+    "spectrum k" "spds/Au.k.spd"
+    "bool useMS" "true"
+    "bool remaproughness" "true"
+    "integer maxScatteringOrder" [10]
+Shape "plymesh" "string filename" "geometry/dragon_remeshed.ply"
+AttributeEnd
+
+WorldEnd
