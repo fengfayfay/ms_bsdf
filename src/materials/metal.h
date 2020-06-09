@@ -55,7 +55,9 @@ class MetalMaterial : public Material {
                   const std::shared_ptr<Texture<Float>> &urough,
                   const std::shared_ptr<Texture<Float>> &vrough,
                   const std::shared_ptr<Texture<Float>> &bump,
-                  bool remapRoughness, bool useMS, int maxScatteringOrder);
+                  bool remapRoughness, 
+                  bool useMS, int maxScatteringOrder, bool useIS,
+                  Float diffPdfScale);
     void ComputeScatteringFunctions(SurfaceInteraction *si, MemoryArena &arena,
                                     TransportMode mode,
                                     bool allowMultipleLobes) const;
@@ -68,6 +70,8 @@ class MetalMaterial : public Material {
     bool remapRoughness;
     bool useMS;
     int maxScatteringOrder;
+    bool useIS;
+    Float diffPdfScale;
 };
 
 MetalMaterial *CreateMetalMaterial(const TextureParams &mp);

@@ -94,7 +94,7 @@ Spectrum eval_conductor(const Vector3f& wi, const Vector3f& wo, const float alph
 	const float D = D_ggx(wh, alpha_x, alpha_y);
 	const float G2 = 1.0f / (1.0f + (-ray.Lambda-1.0f) + ray_shadowing.Lambda);
 	Spectrum singleScattering = FrConductor(Dot(-ray.w, wh), m_eta, m_k)  *  D * G2 / (4.0f * wi.z);
-        if (scatteringOrderMax == 1)
+    if (scatteringOrderMax == 1)
 	  return 0.5 * singleScattering;
 	
 	// MIS weight 
@@ -190,7 +190,6 @@ Vector3f sample_conductor(const Vector3f& wi, const float alpha_x, const float a
 
 		if( current_scatteringOrder > scatteringOrderMax )
 		{
-                       // break;
 			energy = Spectrum(0.0f);
 			return Vector3f(0,0,1);
 		}

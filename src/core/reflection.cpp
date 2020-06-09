@@ -77,7 +77,8 @@ Spectrum FrConductor(Float cosThetaI, const Spectrum &etai,
 
 Spectrum FrConductor(Float cosThetaI, 
                      const Spectrum &eta, const Spectrum &etak) {
-    //return Spectrum(1.0f);
+    //HACK set eta to black to get full reflectivity
+    if (eta.IsBlack()) return Spectrum(1.0f);
 
     cosThetaI = Clamp(cosThetaI, -1, 1);
     Float cosThetaI2 = cosThetaI * cosThetaI;
@@ -422,13 +423,21 @@ Spectrum MicrofacetReflection::Sample_f(const Vector3f &wo, Vector3f *wi,
 
     // Compute PDF of _wi_ for microfacet reflection
     *pdf = distribution->Pdf(wo, wh) / (4 * Dot(wo, wh));
-    return f(wo, *wi);
+    Spectrum weight =  f(wo, *wi);
+    if (*pdf >0) {
+        weight = weight / *pdf;
+        *pdf = Pdf(wo, *wi);
+        Spectrum new_weight = weight * (*pdf);    
+        return new_weight;
+    } else {
+        return weight;
+    }
 }
 
 Float MicrofacetReflection::Pdf(const Vector3f &wo, const Vector3f &wi) const {
     if (!SameHemisphere(wo, wi)) return 0;
     Vector3f wh = Normalize(wo + wi);
-    return distribution->Pdf(wo, wh) / (4 * Dot(wo, wh));
+    return distribution->Pdf(wo, wh) / (4 * Dot(wo, wh)) + diffPdfScale * AbsCosTheta(wi);
 }
 
 Spectrum MicrofacetTransmission::Sample_f(const Vector3f &wo, Vector3f *wi,
@@ -756,6 +765,7 @@ Spectrum BSDF::Sample_f(const Vector3f &woWorld, Vector3f *wiWorld,
         return 0;
     }
     *wiWorld = LocalToWorld(wi);
+    if (matchingComps == 1) return f;
 
     // Compute overall PDF with all matching _BxDF_s
     if (!(bxdf->type & BSDF_SPECULAR) && matchingComps > 1)
@@ -765,11 +775,10 @@ Spectrum BSDF::Sample_f(const Vector3f &woWorld, Vector3f *wiWorld,
     if (matchingComps > 1) *pdf /= matchingComps;
 
     // Compute value of BSDF for sampled direction
-    if (!(bxdf->type & BSDF_SPECULAR)) {
+    if (!(bxdf->type & BSDF_SPECULAR) && matchingComps > 1) {
         bool reflect = Dot(*wiWorld, ng) * Dot(woWorld, ng) > 0;
-        f = 0.;
         for (int i = 0; i < nBxDFs; ++i)
-            if (bxdfs[i]->MatchesFlags(type) &&
+            if (bxdfs[i] != bxdf && bxdfs[i]->MatchesFlags(type) &&
                 ((reflect && (bxdfs[i]->type & BSDF_REFLECTION)) ||
                  (!reflect && (bxdfs[i]->type & BSDF_TRANSMISSION))))
                 f += bxdfs[i]->f(wo, wi);

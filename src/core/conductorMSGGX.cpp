@@ -49,19 +49,19 @@ namespace pbrt {
 Spectrum ConductorMSReflection::f(const Vector3f &wo, const Vector3f &wi) const {
     if (!SameHemisphere(wo, wi)) return Spectrum(0.f);
     Float cosThetaO = AbsCosTheta(wo), cosThetaI = AbsCosTheta(wi);
-    Vector3f wh = wi + wo;
     // Handle degenerate cases for microfacet reflection
     if (cosThetaI == 0 || cosThetaO == 0) return Spectrum(0.);
-    if (wh.x == 0 && wh.y == 0 && wh.z == 0) return Spectrum(0.);
+    //Vector3f wh = wi + wo;
+    //if (wh.x == 0 && wh.y == 0 && wh.z == 0) return Spectrum(0.);
 
 
     Spectrum res = 2.0f * eval_conductor(wo, wi, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax)/cosThetaI;
     //Spectrum res = 2.0f * eval_conductor(wo, wi, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax);
-/*
+    /*
     Spectrum res = (generateRandomNumber() > 0.5f) ?
-                    2.0f * eval_conductor(wo, wi, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax) :
-                    2.0f * eval_conductor(wi, wo, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax)/cosThetaO*cosThetaI;
- */ 
+                    2.0f * eval_conductor(wo, wi, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax)/cosThetaI:
+                    2.0f * eval_conductor(wi, wo, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax)/cosThetaO;
+    */
     return res; 
 
 }
@@ -88,19 +88,30 @@ Spectrum ConductorMSReflection::Sample_f(const Vector3f &wo, Vector3f *wi,
     if (pdf) *pdf = Pdf(wo, *wi);
     return energy;	
  
-*/  Spectrum energy(1.0f); 
+*/ 
+    if (!useIS) {
+        *wi = CosineSampleHemisphere(u);
+        if (wo.z < 0) wi->z *= -1;
+        *pdf = Pdf(wo, *wi);
+        return f(wo, *wi);
+    }
+
+    Spectrum energy(1.0f); 
     Vector3f wi_sampled = sample_conductor(wo, alpha_x, alpha_y, m_eta, m_k, m_scatteringOrderMax, energy);    
     *wi = wi_sampled;
-    if (!SameHemisphere(wo, *wi)) return Spectrum(0.f);
-    if (pdf) *pdf = Pdf(wo, *wi);
-    energy /= fabs(wi_sampled.z);
-    //energy  = f(wo, *wi);
-    return energy;
+    if (!SameHemisphere(wo, *wi) || wi_sampled.z == 0) return Spectrum(0.f);
+    Float thePdf = Pdf(wo, *wi);
+    if (pdf) *pdf = thePdf;
+    //energy *= (thePdf/fabs(wi_sampled.z));
+    return energy  * thePdf / AbsCosTheta(wi_sampled);
 
 }
 
 Float ConductorMSReflection::Pdf(const Vector3f &wo, const Vector3f &wi) const {
-    if (!SameHemisphere(wo, wi)) return 0;
+    if (!useIS) return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPi : 0;
+
+    if (!SameHemisphere(wo, wi)) return 0.0f;
+
     Vector3f wh = Normalize(wo+wi);
 
     RayInfo ray;
@@ -113,15 +124,18 @@ Float ConductorMSReflection::Pdf(const Vector3f &wo, const Vector3f &wi) const {
         return D(wh) * AbsCosTheta(wh);
     distribution->Pdf(wo, wh) / (4 * Dot(wo, wh));
     */
-    //return D_ggx(wh, alpha_x, alpha_y) / (1.0f + ray.Lambda) / (4.0f * AbsCosTheta(wo));
 
 
                 // single-scattering PDF + diffuse
                 // otherwise too many fireflies due to lack of multiple-scattering PDF
                 // (MIS works even if the PDF is wrong and not normalized)
-    float scale = InvPi;
+    //float scale = InvPi;
+    float scale = diffPdfScale;
     float diffusePdf = AbsCosTheta(wi) * scale;
-    return D_ggx(wh, alpha_x, alpha_y) / (1.0f + ray.Lambda) / (4.0f * AbsCosTheta(wo)) + diffusePdf;
+    //return D_ggx(wh, alpha_x, alpha_y) / (1.0f + ray.Lambda) / (4.0f * AbsCosTheta(wo)) + diffusePdf;
+
+    float p = distribution->Pdf(wo, wh) / (4 * Dot(wo, wh))  + diffusePdf;
+    return p;
 }
 
 }  // namespace pbrt

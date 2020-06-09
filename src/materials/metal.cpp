@@ -47,14 +47,16 @@ MetalMaterial::MetalMaterial(const std::shared_ptr<Texture<Spectrum>> &eta,
                              const std::shared_ptr<Texture<Float>> &uRoughness,
                              const std::shared_ptr<Texture<Float>> &vRoughness,
                              const std::shared_ptr<Texture<Float>> &bumpMap,
-                             bool remapRoughness, bool useMS, int maxScatteringOrder)
+                             bool remapRoughness, bool useMS, int maxScatteringOrder, 
+                             bool useIS, Float diffPdfScale)
     : eta(eta),
       k(k),
       roughness(roughness),
       uRoughness(uRoughness),
       vRoughness(vRoughness),
       bumpMap(bumpMap),
-      remapRoughness(remapRoughness), useMS(useMS), maxScatteringOrder(maxScatteringOrder) {}
+      remapRoughness(remapRoughness), useMS(useMS), maxScatteringOrder(maxScatteringOrder), 
+      useIS(useIS), diffPdfScale(diffPdfScale) {}
 
 void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction *si,
                                                MemoryArena &arena,
@@ -72,15 +74,15 @@ void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction *si,
         uRough = TrowbridgeReitzDistribution::RoughnessToAlpha(uRough);
         vRough = TrowbridgeReitzDistribution::RoughnessToAlpha(vRough);
     }
+    MicrofacetDistribution *distrib =
+        ARENA_ALLOC(arena, TrowbridgeReitzDistribution)(uRough, vRough);
     if (useMS) {
       si->bsdf->Add(ARENA_ALLOC(arena, ConductorMSReflection)(eta->Evaluate(*si), k->Evaluate(*si), 
-                                                              uRough, vRough, maxScatteringOrder));
+                                                              uRough, vRough, maxScatteringOrder, useIS, diffPdfScale, distrib));
     } else {
       Fresnel *frMf = ARENA_ALLOC(arena, FresnelConductor)(1., eta->Evaluate(*si),
                                                          k->Evaluate(*si));
-      MicrofacetDistribution *distrib =
-        ARENA_ALLOC(arena, TrowbridgeReitzDistribution)(uRough, vRough);
-      si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(1., distrib, frMf));
+      si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(1., distrib, frMf, diffPdfScale));
     }
 }
 
@@ -135,13 +137,16 @@ MetalMaterial *CreateMetalMaterial(const TextureParams &mp) {
         mp.GetFloatTextureOrNull("bumpmap");
     bool remapRoughness = mp.FindBool("remaproughness", true);
     bool useMS = mp.FindBool("useMS", false);
+    bool useIS = mp.FindBool("useIS", false);
     int maxScatteringOrder = 0;
+    Float diffPdfScale = 0.f;
+    diffPdfScale = mp.FindFloat("diffPdfScale", 0.f);
     if (useMS) {
       maxScatteringOrder = mp.FindInt("maxScatteringOrder", 10);
     }
     
     return new MetalMaterial(eta, k, roughness, uRoughness, vRoughness, bumpMap,
-                             remapRoughness, useMS, maxScatteringOrder);
+                             remapRoughness, useMS, maxScatteringOrder, useIS, diffPdfScale);
 }
 
 }  // namespace pbrt

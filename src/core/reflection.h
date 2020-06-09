@@ -432,11 +432,11 @@ class MicrofacetReflection : public BxDF {
   public:
     // MicrofacetReflection Public Methods
     MicrofacetReflection(const Spectrum &R,
-                         MicrofacetDistribution *distribution, Fresnel *fresnel)
+                         MicrofacetDistribution *distribution, Fresnel *fresnel, Float diffPdfScale = 0.0f)
         : BxDF(BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)),
           R(R),
           distribution(distribution),
-          fresnel(fresnel) {}
+          fresnel(fresnel), diffPdfScale(diffPdfScale) {}
     Spectrum f(const Vector3f &wo, const Vector3f &wi) const;
     Spectrum Sample_f(const Vector3f &wo, Vector3f *wi, const Point2f &u,
                       Float *pdf, BxDFType *sampledType) const;
@@ -448,15 +448,17 @@ class MicrofacetReflection : public BxDF {
     const Spectrum R;
     const MicrofacetDistribution *distribution;
     const Fresnel *fresnel;
+    Float diffPdfScale;
 };
 
 class ConductorMSReflection : public BxDF {
   public:
     // MicrofacetReflection Public Methods
     ConductorMSReflection(const Spectrum &m_eta, const Spectrum &m_k, 
-      const float alpha_x, const float alpha_y, const int maxScatteringOrder)
+      const float alpha_x, const float alpha_y, const int maxScatteringOrder, const bool useIS, Float diffPdfScale, MicrofacetDistribution* distribution)
         : BxDF(BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)),
-          m_eta(m_eta), m_k(m_k), alpha_x(alpha_x), alpha_y(alpha_y), m_scatteringOrderMax(maxScatteringOrder)
+          m_eta(m_eta), m_k(m_k), alpha_x(alpha_x), alpha_y(alpha_y), m_scatteringOrderMax(maxScatteringOrder), 
+          useIS(useIS), diffPdfScale(diffPdfScale), distribution(distribution)
           {}
     Spectrum f(const Vector3f &wo, const Vector3f &wi) const;
     Spectrum Sample_f(const Vector3f &wo, Vector3f *wi, const Point2f &u,
@@ -469,7 +471,9 @@ class ConductorMSReflection : public BxDF {
     const Spectrum m_eta, m_k;
     float alpha_x, alpha_y;
     int m_scatteringOrderMax;
-    //const Fresnel *fresnel;
+    bool useIS;
+    Float diffPdfScale;
+    const MicrofacetDistribution *distribution;
 };
 
 
